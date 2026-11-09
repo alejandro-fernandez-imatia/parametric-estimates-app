@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#2C2A29">
+  <title>Imatia · Presupuestos paramétricos</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <aside>
+    <div class="brand"><img src="/assets/imatia-logo.png" alt="Imatia"><small>PRESUPUESTOS</small></div>
+    <div class="workspace">ESPACIO DE TRABAJO</div>
+    <nav aria-label="Navegación principal">
+      <button data-view="quote">Presupuesto</button>
+      <button data-view="articles">Artículos</button>
+      <button data-view="families">Familias</button>
+      <button data-view="parameters">Parámetros</button>
+      <button data-view="tariffs">Tarifas</button>
+      <button data-view="imports">Importar Excel</button>
+    </nav>
+    <div class="aside-bottom">Configurador paramétrico<small>Datos guardados en este navegador</small></div>
+  </aside>
+  <main>
+    <header><span>Imatia / Presupuestos paramétricos</span><div><button id="import">Importar JSON</button><button id="export">Exportar JSON</button><input id="file" type="file" accept="application/json" hidden></div></header>
+    <div id="notice" role="status"></div>
+    <section id="content"></section>
+  </main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
