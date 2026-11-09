@@ -8,6 +8,10 @@
     "test": "node --test"
   },
   "dependencies": {
-    "exceljs": "^4.4.0"
+    "exceljs": "^4.4.0",
+    "pdfkit": "^0.17.2"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0"
   }
 }

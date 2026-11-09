@@ -36,7 +36,14 @@ export function validate(data) {
   if (!unique(data.families)) throw Error('Familias duplicadas');
   for (const a of data.articles) if (!data.families.some(f=>f.id===a.family)) throw Error(`Familia desconocida en artículo ${a.id}`);
   for (const l of data.lines) {
-    if (!l || !data.articles.some(a => a.id === l.article) || typeof l.quantity !== 'number' || !Number.isFinite(l.quantity) || l.quantity <= 0) throw Error('Línea de presupuesto no válida');
+    if (!l || (!l.snapshot && !data.articles.some(a => a.id === l.article)) || typeof l.quantity !== 'number' || !Number.isFinite(l.quantity) || l.quantity <= 0) throw Error('Línea de presupuesto no válida');
+    if (l.discount !== undefined && (!Number.isFinite(l.discount) || l.discount<0 || l.discount>100)) throw Error('Descuento de línea entre 0 y 100');
+    if (l.snapshot) {
+      const s=l.snapshot;
+      if (!s.article || s.article.id!==l.article || !Array.isArray(s.parameters) || typeof s.familyName!=='string' || !Array.isArray(s.tariffs)) throw Error('Copia de artículo no válida');
+      validate({customer:'',parameters:s.parameters,families:[{id:'SNAPSHOT',name:s.familyName||'Familia',parameters:s.parameters.map(p=>p.id)}],articles:[{...s.article,family:'SNAPSHOT'}],lines:[{article:l.article,quantity:l.quantity,values:l.values}],tariffs:s.tariffs,selectedTariff:''});
+      continue;
+    }
     const article = data.articles.find(a=>a.id===l.article);
     if (legacy) l.values = defaultValues(article,data);
     if (!l.values || typeof l.values !== 'object' || Array.isArray(l.values)) throw Error('Faltan valores de configuración en la línea');
@@ -55,7 +62,7 @@ export function validate(data) {
     if (new Set(t.prices.map(p => p.article)).size !== t.prices.length) throw Error('Precios duplicados en tarifa');
   }
   if (!unique(data.tariffs)) throw Error('Tarifas duplicadas');
-  if (typeof data.selectedTariff !== 'string' || (data.selectedTariff && !data.tariffs.some(t => t.id === data.selectedTariff))) throw Error('Tarifa seleccionada no válida');
+  if (typeof data.selectedTariff !== 'string' || (data.selectedTariff && !data.tariffs.some(t => t.id === data.selectedTariff) && !data.lines.some(l=>l.snapshot?.tariffs.some(t=>t.id===data.selectedTariff)))) throw Error('Tarifa seleccionada no válida');
   return data;
 }
 
@@ -75,6 +82,7 @@ export function formulaValues(article, data, configured = defaultValues(article,
 // Preserve compatible values and initialise only parameters newly assigned to a line.
 export function reconcileLines(data) {
   for (const line of data.lines) {
+    if (line.snapshot) continue;
     const article=data.articles.find(a=>a.id===line.article), old=line.values || {};
     line.values=Object.fromEntries(familyParameters(article,data).map(p=>{
       const value=old[p.id];
@@ -94,6 +102,10 @@ export function validateCatalog(data) {
 }
 
 export function unitPrice(article, data, line) {
+  if (line?.snapshot) {
+    const s=line.snapshot;
+    return unitPrice({...s.article,family:'SNAPSHOT'}, {parameters:s.parameters,families:[{id:'SNAPSHOT',parameters:s.parameters.map(p=>p.id)}],tariffs:s.tariffs,selectedTariff:data.selectedTariff}, {values:line.values});
+  }
   const tariff = data.tariffs?.find(t => t.id === data.selectedTariff);
   const formula = tariff?.prices.find(p => p.article === article.id)?.formula || article.formula;
   const values = formulaValues(article,data,line?.values);

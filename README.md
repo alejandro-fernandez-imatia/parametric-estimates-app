@@ -1,6 +1,6 @@
 # Configurador de presupuestos paramétricos
 
-Aplicación local para crear parámetros, artículos, tarifas y un presupuesto. Requiere Node.js 20 o posterior.
+Aplicación autónoma para preparar y guardar presupuestos rápidos, con catálogo paramétrico y PDF para el cliente. Requiere Node.js 20 o posterior.
 
 ## Ejecutar
 
@@ -44,11 +44,11 @@ Desde **Tarifas** se crean/actualizan condiciones y precios específicos por art
 
 Precio unitario = fórmula específica del artículo en tarifa (si no existe, fórmula base) × coeficiente × (1 − descuento / 100). Un descuento de 10 significa 10%. Sin tarifa se aplica la fórmula base sin ajustes. Los parámetros de texto son descriptivos; las listas participan en fórmulas cuando su valor es numérico. En el ejemplo, material es informativo y no modifica automáticamente coste_m2.
 
-Precios unitarios redondeados a dos decimales antes de multiplicar por cantidad; líneas redondeadas a dos decimales. EUR sin impuestos. La tarifa es común al presupuesto. Los valores de los parámetros son independientes por línea: cambiar una medida solo recalcula esa línea.
+Precios unitarios redondeados a dos decimales antes de multiplicar por cantidad; líneas redondeadas a dos decimales. EUR con impuestos configurables (0% inicialmente). Los ajustes locales de precio anteriores se conservan. Los valores de los parámetros son independientes por línea: cambiar una medida solo recalcula esa línea.
 
 ## Almacenamiento y validación
 
-Una configuración y un presupuesto por navegador y origen, en localStorage. No hay cuentas, datos compartidos ni histórico. Borrar datos del navegador elimina el contenido. El servidor escucha solo en 127.0.0.1. El importador utiliza ExcelJS y package-lock.json fija las dependencias.
+Una configuración y varios presupuestos por navegador y origen, en localStorage. No hay cuentas ni datos compartidos. Borrar datos del navegador elimina el contenido. El servidor escucha solo en 127.0.0.1. El importador utiliza ExcelJS y package-lock.json fija las dependencias.
 
 Las pruebas cubren los XLSX entregados, seis escenarios de precio, actualización sin duplicados, rechazo de errores sin mutación, JSON anterior y rutas del servidor. No sustituyen las pruebas manuales de interfaz.
 
@@ -62,4 +62,19 @@ Las pruebas cubren los XLSX entregados, seis escenarios de precio, actualizació
 
 En Excel, `Familias.parametros` contiene identificadores separados por `|`. `Articulos.familia` referencia su código. El archivo 01 incluye parámetros y familias; el 02 referencia esas familias. Los Excel anteriores sin columna familia se aceptan en General; los nuevos deben informar una familia válida. Cambiar los valores iniciales no cambia las líneas ya configuradas.
 
-Al editar/importar familias se conservan valores compatibles, se añaden parámetros nuevos con su valor inicial y se retiran los ajenos a la nueva familia. Las opciones que dejan de ser válidas toman el valor inicial actualizado. Exportar JSON antes de modificar el catálogo si se necesita conservar una versión anterior.
+Al editar/importar familias se conservan valores compatibles, se añaden parámetros nuevos con su valor inicial y se retiran los ajenos a la nueva familia. Las opciones que dejan de ser válidas toman el valor inicial actualizado en líneas sin copia guardada. Los presupuestos con una copia de artículo conservan sus propias definiciones y valores. Exportar JSON antes de modificar el catálogo si se necesita conservar una versión anterior.
+
+## Generación rápida y gestión de presupuestos
+
+- **Mis presupuestos**: listado con búsqueda por número/cliente y filtro de estado. Abrir o duplicar una oferta.
+- **Nuevo**: crea un presupuesto vacío, con número automático P-AÑO-SECUENCIA, fecha actual y estado Borrador. La numeración es local al navegador; el número se puede editar, sin duplicados. Estados: Borrador, Enviado, Aceptado, Rechazado.
+- **Guardar**: guarda el presupuesto completo. Los cambios válidos se guardan automáticamente; al cambiar de presupuesto se conserva el trabajo actual. Máximo 1000 presupuestos y límite real de almacenamiento del navegador. Si no se puede guardar, se informa del error y no se sustituye el estado actual.
+- **Duplicar presupuesto / línea**: crea copias independientes con sus valores, cantidades, descuentos y condiciones. El presupuesto duplicado recibe nuevo identificador, número, fecha y estado Borrador; se limpia la fecha de validez.
+- **Precios conservados**: cada línea copia la definición de artículo, parámetros y reglas locales de precio. Los cambios de catálogo no alteran presupuestos existentes; las líneas nuevas usan el catálogo actual. Duplicar conserva esas reglas para preparar variantes.
+- **Búsqueda**: filtros por código, descripción y familia tanto en el catálogo como al añadir artículos. La búsqueda ignora acentos.
+- **Asistente de fórmulas**: inserta parámetros y operadores en la posición del cursor y prueba el resultado con valores editables. Solo utiliza parámetros de la familia seleccionada.
+- **Condiciones económicas**: descuento porcentual por línea, portes, un porcentaje de impuesto común, fecha de validez y texto comercial. Cada línea: precio unitario redondeado × cantidad → bruto redondeado → descuento redondeado → neto. Base = suma de netos + portes. Impuesto redondeado sobre esa base. Total = base + impuesto. No hay integración externa con tarifas ni ERP.
+- **PDF**: solicita cliente, empresa emisora y al menos una línea válida. Incluye número, fecha, estado, validez, datos de emisor/cliente, artículos, cantidades, precios, descuentos, parámetros, portes, impuesto y condiciones. Se procesa en memoria en el servidor local y se descarga; no se archiva el PDF en el servidor.
+- **Copias JSON**: exportan también todos los presupuestos guardados. Importar una copia sustituye todo el espacio local, previa confirmación; se aceptan copias de hasta 20 MB sujetas a la cuota del navegador. Los JSON antiguos se migran como presupuesto inicial.
+
+Reiniciar el servidor después de actualizar e instalar dependencias con npm ci. PDFKit genera los documentos; jsdom se usa únicamente en pruebas de interfaz simulada. La suite incluye pruebas del modelo, importador, precios conservados, descuentos, recuperación, búsqueda, PDF multipágina, endpoints y recorrido de interfaz.
