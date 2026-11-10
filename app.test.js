@@ -3,15 +3,21 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {JSDOM} from 'jsdom';
 import {buildEstimatePdf} from './pdf.js';
-test('Flujo de interfaz: editar, duplicar, recuperar, buscar, fórmula y descargar PDF',async()=>{
+test('Flujo de interfaz: editar, duplicar, recuperar, buscar, fórmula e imprimir PDF',async()=>{
  const html=await readFile(new URL('index.html',import.meta.url),'utf8'),dom=new JSDOM(html,{url:'http://localhost:3000'});
  globalThis.document=dom.window.document;globalThis.localStorage=dom.window.localStorage;globalThis.FormData=dom.window.FormData;globalThis.confirm=()=>true;
  const $=selector=>document.querySelector(selector),state=()=>JSON.parse(localStorage.getItem('elastic-parametric-v1'));
  const change=(selector,value)=>{const el=$(selector);assert.ok(el,selector);el.value=value;el.dispatchEvent(new dom.window.Event('change',{bubbles:true}));};
  const input=(selector,value)=>{const el=$(selector);el.value=value;el.dispatchEvent(new dom.window.Event('input',{bubbles:true}));};
  await import('./app.js');
+ assert.equal($('#menu-toggle').getAttribute('aria-expanded'),'true');$('#menu-toggle').click();assert.equal($('#sidebar').hidden,true);assert.equal(localStorage.getItem('imatia-menu-collapsed'),'true');$('#menu-toggle').click();assert.equal($('#sidebar').hidden,false);assert.equal($('#menu-toggle').getAttribute('aria-expanded'),'true');
  assert.ok($('.quote-summary'));change('#customer','Cliente de prueba');change('[data-issuer-field="name"]','Empresa emisora');
  const id=state().estimate.id;
+ $(`[data-cancel-estimate="${id}"]`).click();assert.equal(state().estimate.status,'Anulado');assert.ok($('.cancelled-notice'));
+ $('#undo').click();assert.equal(state().estimate.status,'Borrador');
+ $(`[data-cancel-estimate="${id}"]`).click();$('[data-view="estimates"]').click();change('#estimate-status','Anulado');assert.equal(document.querySelectorAll('.saved-estimate').length,1);
+ $(`[data-reactivate-estimate="${id}"]`).click();assert.equal(state().estimate.status,'Borrador');assert.equal(document.querySelectorAll('.saved-estimate').length,0);change('#estimate-status','');
+ $(`[data-open-estimate="${id}"]`).click();
  $('[data-duplicate-line="0"]').click();assert.equal(state().lines.length,2);
  change('[data-line="0"][data-param="ancho"]','3');assert.equal(state().lines[0].values.ancho,3);assert.equal(state().lines[1].values.ancho,1);
  change('[data-line-discount="0"]','10');change('[data-commercial-field="shipping"]','10');change('[data-commercial-field="tax"]','21');
@@ -26,7 +32,15 @@ test('Flujo de interfaz: editar, duplicar, recuperar, buscar, fórmula y descarg
  input('#article-form [name="name"]','Artículo de prueba');$('#article-form').dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));assert.ok(state().articles.some(a=>a.name==='Artículo de prueba'));
  $('[data-view="quote"]').click();input('#quote-article-search','no coincide');assert.equal($('#line-form button').disabled,true);input('#quote-article-search','panel');assert.equal($('#line-form button').disabled,false);
  let payload;globalThis.fetch=async(url,options)=>{assert.equal(url,'/api/pdf');payload=JSON.parse(options.body);return new Response(await buildEstimatePdf(payload),{headers:{'Content-Type':'application/pdf'}});};
- let downloaded;const done=new Promise(resolve=>{dom.window.HTMLAnchorElement.prototype.click=function(){downloaded=this.download;resolve();};});
- $('[data-pdf]').click();await done;assert.ok(downloaded.endsWith('.pdf'));assert.equal(payload.savedEstimates.length,0);assert.equal(payload.customer,'Cliente de prueba');assert.equal(payload.lines.length,2);
+ const printWindow=new JSDOM('<!doctype html><body></body>',{url:'http://localhost:3000'});
+ dom.window.open=()=>printWindow.window;
+ let observer;const done=new Promise(resolve=>{observer=new printWindow.window.MutationObserver(()=>{if(printWindow.window.document.querySelector('iframe'))resolve();});observer.observe(printWindow.window.document.body,{childList:true});});
+ assert.equal(document.querySelectorAll('[data-pdf]').length,1);assert.ok($('.quote-summary [data-pdf]'));assert.equal($('[data-pdf]').textContent,'Imprimir');
+ $('[data-pdf]').click();await done;observer.disconnect();
+ const frame=printWindow.window.document.querySelector('iframe');assert.match(frame.src,/^blob:/);let printed=false;frame.contentWindow.focus=()=>{};frame.contentWindow.print=()=>{printed=true;};frame.dispatchEvent(new printWindow.window.Event('load'));assert.equal(printed,true);
+ assert.equal(payload.savedEstimates.length,0);assert.equal(payload.customer,'Cliente de prueba');assert.equal(payload.lines.length,2);
+ printWindow.window.close();
+ dom.window.open=()=>null;$('[data-pdf]').click();assert.match($('#notice').textContent,/ventanas emergentes/);
+
  dom.window.close();
 });

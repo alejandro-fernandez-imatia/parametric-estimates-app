@@ -8,22 +8,28 @@
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <aside>
+  <aside id="sidebar">
     <div class="brand"><img src="/assets/imatia-logo.png" alt="Imatia"><small>PRESUPUESTOS</small></div>
     <div class="workspace">ESPACIO DE TRABAJO</div>
     <nav aria-label="Navegación principal">
+      <button data-view="companies">Empresas</button>
       <button data-view="estimates">Mis presupuestos</button>
       <button data-view="quote">Presupuesto</button>
+      <details class="configuration-nav" id="configuration-nav">
+      <summary>Configuración</summary>
+      <div class="configuration-links">
       <button data-view="articles">Artículos</button>
       <button data-view="families">Familias</button>
       <button data-view="parameters">Parámetros</button>
       <button data-view="tariffs">Tarifas</button>
-      <button data-view="imports">Importar Excel</button>
+      <button data-view="imports">Importación de datos</button>
+      </div>
+      </details>
     </nav>
     <div class="aside-bottom">Configurador paramétrico<small>Datos guardados en este navegador</small></div>
   </aside>
   <main>
-    <header><span>Imatia / Presupuestos paramétricos</span><div><button id="import">Importar JSON</button><button id="export">Exportar JSON</button><input id="file" type="file" accept="application/json" hidden></div></header>
+    <header><div class="header-navigation"><button id="menu-toggle" type="button" aria-controls="sidebar" aria-expanded="true" aria-label="Ocultar menú">☰ <span>Menú</span></button><span>Imatia / Presupuestos paramétricos</span></div><div class="header-tools"><label class="company-selector">Empresa activa<select id="company-select" aria-label="Empresa activa"></select></label><button id="undo" type="button" disabled>Deshacer</button></div></header>
     <div id="notice" role="status"></div>
     <section id="content"></section>
   </main>

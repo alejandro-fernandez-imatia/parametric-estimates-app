@@ -21,6 +21,10 @@ export function validate(data) {
   const unique = items => new Set(items.map(x => x.id)).size === items.length;
   for (const p of data.parameters) {
     if (!p || typeof p.id !== 'string' || !/^[a-zA-Z_][a-zA-Z_0-9]*$/.test(p.id) || typeof p.name !== 'string' || !['number','text','select'].includes(p.type) || !Array.isArray(p.options) || !p.options.every(x => typeof x === 'string') || !['string','number'].includes(typeof p.value) || (p.type === 'number' && (p.value === '' || !Number.isFinite(Number(p.value)))) || (p.type === 'select' && !p.options.includes(p.value))) throw Error('Parámetro no válido');
+    if(p.optionPricing!==undefined){
+      const pricing=p.optionPricing;
+      if(p.type!=='select'||!pricing||!['value','add','multiply'].includes(pricing.mode)||!Array.isArray(pricing.values)||pricing.values.length!==p.options.length||new Set(p.options).size!==p.options.length||new Set(pricing.values.map(v=>v?.option)).size!==p.options.length||pricing.values.some(v=>!v||!p.options.includes(v.option)||!Number.isFinite(v.amount)||v.amount<0))throw Error(`Precios de opciones no válidos: ${p.id}`);
+    }
   }
   for (const a of data.articles) if (!a || typeof a.id !== 'string' || typeof a.name !== 'string' || typeof a.formula !== 'string' || !a.formula.trim()) throw Error('Artículo no válido');
   if (!unique(data.parameters) || !unique(data.articles)) throw Error('Hay identificadores duplicados');
@@ -36,6 +40,7 @@ export function validate(data) {
   if (!unique(data.families)) throw Error('Familias duplicadas');
   for (const a of data.articles) if (!data.families.some(f=>f.id===a.family)) throw Error(`Familia desconocida en artículo ${a.id}`);
   for (const l of data.lines) {
+    if(l.manualPrice!==undefined&&(typeof l.manualPrice!=='number'||!Number.isFinite(l.manualPrice)||l.manualPrice<0))throw Error('Precio manual no válido: introduce un importe mayor o igual que cero');
     if (!l || (!l.snapshot && !data.articles.some(a => a.id === l.article)) || typeof l.quantity !== 'number' || !Number.isFinite(l.quantity) || l.quantity <= 0) throw Error('Línea de presupuesto no válida');
     if (l.discount !== undefined && (!Number.isFinite(l.discount) || l.discount<0 || l.discount>100)) throw Error('Descuento de línea entre 0 y 100');
     if (l.snapshot) {
@@ -76,7 +81,25 @@ export function defaultValues(article, data) {
 }
 
 export function formulaValues(article, data, configured = defaultValues(article,data)) {
-  return Object.fromEntries(familyParameters(article,data).filter(p=>p.type!=='text').map(p=>[p.id,configured[p.id]]));
+  return Object.fromEntries(familyParameters(article,data).filter(p=>p.type!=='text'&&(!p.optionPricing||p.optionPricing.mode==='value')).map(p=>[p.id,numericOptionValue(p,configured[p.id])]));
+}
+
+export function numericOptionValue(parameter,value){
+  if(!parameter.optionPricing)return value;
+  const option=parameter.optionPricing.values.find(v=>v.option===value);
+  if(!option)throw Error(`Opción desconocida: ${parameter.name}`);
+  return option.amount;
+}
+
+export function applyOptionPricing(base,parameters,values){
+  let extra=0,factor=1;
+  for(const p of parameters){
+    if(p.optionPricing?.mode==='add')extra+=numericOptionValue(p,values[p.id]);
+    if(p.optionPricing?.mode==='multiply')factor*=numericOptionValue(p,values[p.id]);
+  }
+  const amount=(base+extra)*factor;
+  if(!Number.isFinite(amount)||amount<0)throw Error('Precio de opciones fuera de rango');
+  return amount;
 }
 
 // Preserve compatible values and initialise only parameters newly assigned to a line.
@@ -96,12 +119,17 @@ export function reconcileLines(data) {
 export function validateCatalog(data) {
   for (const article of data.articles) {
     const formulas=[article.formula,...data.tariffs.flatMap(t=>t.prices.filter(p=>p.article===article.id).map(p=>p.formula))];
-    for (const formula of formulas) if (calculate(formula,formulaValues(article,data))<0) throw Error(`Precio negativo en ${article.id}`);
+    for (const formula of formulas) {
+      const base=calculate(formula,formulaValues(article,data));
+      if(base<0)throw Error(`Precio negativo en ${article.id}`);
+      applyOptionPricing(base,familyParameters(article,data),defaultValues(article,data));
+    }
   }
   return data;
 }
 
 export function unitPrice(article, data, line) {
+  if(line?.manualPrice!==undefined){if(typeof line.manualPrice!=='number'||!Number.isFinite(line.manualPrice)||line.manualPrice<0)throw Error('Precio manual no válido');return Math.round((line.manualPrice+Number.EPSILON*Math.max(1,Math.abs(line.manualPrice)))*100)/100;}
   if (line?.snapshot) {
     const s=line.snapshot;
     return unitPrice({...s.article,family:'SNAPSHOT'}, {parameters:s.parameters,families:[{id:'SNAPSHOT',parameters:s.parameters.map(p=>p.id)}],tariffs:s.tariffs,selectedTariff:data.selectedTariff}, {values:line.values});
@@ -110,7 +138,9 @@ export function unitPrice(article, data, line) {
   const formula = tariff?.prices.find(p => p.article === article.id)?.formula || article.formula;
   const values = formulaValues(article,data,line?.values);
   const base = calculate(formula, values);
-  const amount = base * (tariff?.multiplier ?? 1) * (1 - (tariff?.discount ?? 0) / 100);
+  const configured=line?.values||defaultValues(article,data);
+  const adjusted=applyOptionPricing(base,familyParameters(article,data),configured);
+  const amount = adjusted * (tariff?.multiplier ?? 1) * (1 - (tariff?.discount ?? 0) / 100);
   if (base < 0 || !Number.isFinite(amount) || amount < 0) throw Error('Precio no válido');
   return Math.round((amount + Number.EPSILON * Math.max(1, Math.abs(amount))) * 100) / 100;
 }

@@ -10,8 +10,32 @@
   color: var(--charcoal);
   background: var(--white);
 }
+.header-navigation { display:flex; align-items:center; gap:16px; min-width:0; }
+#menu-toggle { display:inline-flex; align-items:center; justify-content:center; gap:8px; flex:0 0 auto; min-height:44px; white-space:nowrap; }
+body.menu-collapsed main { margin-left:0; width:100%; }
+#sidebar { overflow-y:auto; }
+.status-cancelled { background:#F2F2F2; color:#55514E; border-color:#AAA; }
+.cancelled-notice { background:#F2F2F2; border-left:4px solid var(--charcoal); padding:14px 16px; }
+.quote-table [data-manual-price] { max-width:160px; text-align:right; }
+.quote-table [data-reset-price] { margin-top:8px; font-size:13px; padding:7px 10px; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+.line-selection { display: inline-flex; float: left; align-items: center; justify-content: center; width: 32px; height: 32px; margin-right: 10px; }
+.line-selection input[type="checkbox"] { width: 18px; height: 18px; min-height: 18px; margin: 0; accent-color: var(--coral); }
+.article-row:has([data-select-line]:checked) > td, .article-row:has([data-select-line]:checked) + .line-configuration > td { background: #FFF6F3; }
+.bulk-toolbar { padding: 16px; margin: 18px 0; background: #F6F4F3; border: 1px solid var(--border); border-radius: 7px; }
+.bulk-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.bulk-actions strong { font-size: 13px; }
+#bulk-form { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) auto; gap: 16px; align-items: end; margin-top: 18px; }
+#bulk-form > *, #bulk-value-container { min-width: 0; }
+#bulk-form button { margin: 0; min-height: 44px; }
+.option-pricing-editor { margin: 24px 0 0; padding: 18px; border: 1px solid var(--border); border-radius: 7px; min-width: 0; }
+.option-pricing-editor legend { font-size: 15px; font-weight: 600; }
+.pricing-enabled { display: flex; align-items: center; gap: 10px; margin: 10px 0 20px; }
+.pricing-enabled input[type="checkbox"] { width: 18px; height: 18px; min-height: 18px; margin: 0; }
+#option-pricing-values { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 16px; }
+#option-pricing-values label { min-width: 0; overflow-wrap: anywhere; }
+@media(max-width:700px) { #bulk-form { grid-template-columns: minmax(0,1fr); } .line-selection { height: 44px; width: 32px; } #option-pricing-values { grid-template-columns: minmax(0,1fr); } }
 textarea { width: 100%; min-width: 0; max-width: 100%; display: block; margin-top: 8px; border: 1px solid #CFCAC6; padding: 10px 11px; border-radius: 5px; font: inherit; font-size: 16px; color: var(--charcoal); background: var(--white); resize: vertical; }
 textarea:focus { outline: 2px solid var(--coral); outline-offset: 1px; }
 body { margin: 0; display: flex; }
@@ -25,6 +49,13 @@ aside {
 .brand small { display: block; font-size: 11px; letter-spacing: 1.5px; color: #D8D5D3; margin-top: 4px; }
 .workspace { font-size: 10px; font-weight: 600; letter-spacing: 1.5px; margin: 32px 12px 14px; color: #C6C1BD; }
 nav { display: grid; gap: 6px; }
+.configuration-nav { min-width:0; border:0; padding:0; margin-top:8px; }
+.configuration-nav > summary { color:#E4E0DE; padding:14px 16px; border-radius:7px; cursor:pointer; font-size:16px; }
+.configuration-nav > summary:hover { background:#403C39; }
+.configuration-nav.contains-active > summary { color:var(--coral); }
+.configuration-links { display:grid; gap:4px; margin:6px 0 0 12px; padding-left:8px; border-left:1px solid #55514E; min-width:0; }
+.configuration-links button { white-space:normal; overflow-wrap:anywhere; }
+@media(max-width:1000px) { nav .configuration-nav { grid-column:1 / -1; } .configuration-links { grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); } }
 nav button { width: 100%; text-align: left; border: 0; background: transparent; color: #E4E0DE; padding: 14px 16px; border-radius: 7px; }
 nav button:hover { background: #403C39; }
 nav button.active { background: var(--coral); color: var(--charcoal); font-weight: 700; }
@@ -32,6 +63,10 @@ nav button.active { background: var(--coral); color: var(--charcoal); font-weigh
 .aside-bottom small { display: block; color: #C6C1BD; font-size: 10px; margin-top: 9px; }
 main { margin-left: 260px; width: calc(100% - 260px); min-width: 0; }
 header { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 80px; padding: 18px 32px; background: var(--charcoal); color: var(--white); border-left: 1px solid #55514E; }
+.header-tools { display:flex; align-items:center; flex-wrap:wrap; gap:16px; min-width:0; }
+.company-selector { color:var(--white); min-width:0; width:280px; max-width:100%; }
+.company-selector select { margin-top:4px; width:100%; }
+@media(max-width:700px) { header { flex-wrap:wrap; } .header-tools { width:100%; } .company-selector { flex:1; width:auto; min-width:160px; } }
 header span { font-size: 13px; }
 header > div { display: flex; gap: 9px; align-items: center; }
 header button { background: transparent; color: var(--white); border-color: #817A75; }
@@ -87,11 +122,15 @@ code { background: #F3F1EF; padding: 3px 6px; border-radius: 4px; color: var(--c
 #excel-result { margin-top: 24px; }
 #excel-result li { margin: 8px 0; }
 #selected-tariff { margin-bottom: 10px; }
-.line-configuration td { background: var(--white); padding: 16px 12px 24px; border-bottom: 2px solid var(--border); }
+.line-configuration td { background: #F2F2F2; padding: 16px 12px 24px; border-bottom: 2px solid var(--border); }
+.line-configuration > td > .muted { color: var(--charcoal); font-weight: 600; }
 .line-configuration .fields { margin-top: 14px; grid-template-columns: repeat(auto-fit,minmax(140px,1fr)); }
-.parameter-choices { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 14px; }
-.parameter-choices label { display: flex; align-items: center; gap: 8px; }
-.parameter-choices input { width: auto; min-height: 0; margin: 0; }
+.parameter-choices { display: block; border: 1px solid var(--border); border-radius: 7px; }
+.parameter-choices label { display: grid; grid-template-columns: 24px minmax(0,1fr) minmax(160px,.6fr); align-items: center; gap: 14px; padding: 13px 16px; border-bottom: 1px solid var(--border); line-height: 1.5; overflow-wrap: anywhere; }
+.parameter-choices label:last-child { border-bottom: 0; }
+.parameter-choices label:nth-child(even) { background: #F6F4F3; }
+.parameter-choices input { width: 18px; height: 18px; min-height: 18px; margin: 0; }
+.parameter-choices code { justify-self: start; max-width: 100%; white-space: normal; word-break: normal; overflow-wrap: anywhere; }
 .page-heading { margin-bottom: 24px; }
 .page-heading .heading { margin-bottom: 0; }
 .quote-heading { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
@@ -150,6 +189,9 @@ details .fields { margin-top: 18px; }
 .formula-chips, .formula-operators { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
 .formula-chips small { display: block; color: var(--muted); margin-top: 4px; }
 .formula-result { border-left: 3px solid var(--coral); padding: 12px; background: #F6F4F3; font-weight: 600; }
+#formula-test-values { align-items: stretch; row-gap: 20px; }
+#formula-test-values > label { display: grid; grid-template-rows: minmax(42px,auto) 44px; align-items: end; gap: 8px; line-height: 21px; }
+#formula-test-values input, #formula-test-values select { height: 44px; margin: 0; }
 .line-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
 .line-actions button { width: 36px; height: 36px; padding: 4px; }
 .quote-table .col-article { width: 42%; }
@@ -211,7 +253,9 @@ details .fields { margin-top: 18px; }
   .parameter-label { height: auto; min-height: 42px; }
   .parameter-field-wide { grid-column: 1 / -1; }
   .row > div:last-child { flex-shrink: 1; max-width: 100%; }
-  .parameter-choices label { flex-wrap: wrap; }
+  .parameter-choices label { grid-template-columns: 24px minmax(0,1fr); gap: 6px 10px; padding: 12px; }
+  .parameter-choices input { grid-column: 1; grid-row: 1 / span 2; }
+  .parameter-choices code { grid-column: 2; grid-row: 2; }
   .actions a, .card p, .error { overflow-wrap: anywhere; }
 }
 @media(max-width:360px) {

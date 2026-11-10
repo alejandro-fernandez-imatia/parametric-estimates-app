@@ -1,5 +1,5 @@
 import {validate,unitPrice,familyParameters} from './model.js';
-export const statuses=['Borrador','Enviado','Aceptado','Rechazado'];
+export const statuses=['Borrador','Enviado','Aceptado','Rechazado','Anulado'];
 export const round=value=>Math.round((value+Number.EPSILON*Math.max(1,Math.abs(value)))*100)/100;
 export function today(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 const dateValid=value=>typeof value==='string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0,10)===value;
@@ -50,6 +50,18 @@ export function lineAmounts(data,line){
  if(![unit,gross,deduction,net].every(Number.isFinite))throw Error('Importe fuera de rango');
  return {unit,gross,deduction,net};
 }
+export function selectEstimateTariff(data,id){
+ const next=structuredClone(data);
+ const current=next.tariffs.find(t=>t.id===id);
+ if(id&&!current&&!next.lines.some(l=>l.snapshot?.tariffs.some(t=>t.id===id)))throw Error('Tarifa no encontrada');
+ next.selectedTariff=id;
+ if(current)for(const line of next.lines){
+  const frozen=freezeLine(next,line);Object.assign(line,frozen);
+  line.snapshot.tariffs=line.snapshot.tariffs.filter(t=>t.id!==id);
+  line.snapshot.tariffs.push({...structuredClone(current),prices:current.prices.filter(p=>p.article===line.article)});
+ }
+ validateWorkspace(next);next.lines.forEach(line=>lineAmounts(next,line));return next;
+}
 export function estimateTotals(data){
  const amounts=data.lines.map(l=>lineAmounts(data,l));
  const gross=round(amounts.reduce((n,a)=>n+a.gross,0)),discount=round(amounts.reduce((n,a)=>n+a.deduction,0)),net=round(gross-discount);
@@ -65,7 +77,7 @@ export function rememberEstimate(data){
  data.lines=data.lines.map(l=>freezeLine(data,l));
  const record=structuredClone({estimate:data.estimate,customer:data.customer,commercial:data.commercial,issuer:data.issuer,lines:data.lines,selectedTariff:data.selectedTariff});
  const index=data.savedEstimates.findIndex(q=>q.estimate.id===data.estimate.id);
- if(index<0 && data.savedEstimates.length>=1000)throw Error('Se ha alcanzado el máximo de 1000 presupuestos. Exporta una copia JSON.');
+ if(index<0 && data.savedEstimates.length>=1000)throw Error('Se ha alcanzado el máximo de 1000 presupuestos guardados en este navegador.');
  if(index<0)data.savedEstimates.push(record);else data.savedEstimates[index]=record;
  return data;
 }
@@ -87,6 +99,15 @@ export function duplicateEstimate(data,id=data.estimate.id){
 export function duplicateLine(data,index){
  if(!data.lines[index])throw Error('Línea no encontrada');
  const line=structuredClone(data.lines[index]);data.lines.splice(index+1,0,line);return data;
+}
+export function setEstimateStatus(data,id,status){
+ if(!statuses.includes(status))throw Error('Estado de presupuesto no válido');
+ const next=structuredClone(data);rememberEstimate(next);
+ const record=next.savedEstimates.find(q=>q.estimate.id===id);
+ if(!record)throw Error('Presupuesto no encontrado');
+ record.estimate.status=status;
+ if(next.estimate.id===id)next.estimate.status=status;
+ return validateWorkspace(next);
 }
 export function searchArticles(data,query='',family=''){
  const normalize=value=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es');

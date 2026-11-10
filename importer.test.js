@@ -41,7 +41,7 @@ test('Migra JSON previo, mantiene tarifas en JSON y aplica fallback a precio bas
 });
 test('Servidor entrega app, descargas y endpoint Excel',async()=>{
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
- try{const url=`http://127.0.0.1:${server.address().port}`;for(const path of ['/','/app.js','/workflows.js','/importer.js','/examples/00_configuracion_completa.xlsx'])assert.equal((await fetch(url+path)).status,200);
+ try{const url=`http://127.0.0.1:${server.address().port}`;for(const path of ['/','/app.js','/workflows.js','/importer.js','/editing.js','/editing-ui.js','/examples/00_configuracion_completa.xlsx'])assert.equal((await fetch(url+path)).status,200);
  const response=await fetch(url+'/api/excel',{method:'POST',body:await readFile(new URL('examples/00_configuracion_completa.xlsx',import.meta.url))});assert.equal(response.status,200);assert.deepEqual(prepareImport(empty(),await response.json()).errors,[]);
  assert.equal((await fetch(url+'/api/excel',{method:'POST',body:'invalid'})).status,400);
  assert.equal((await fetch(url+'/api/excel',{method:'POST',headers:{Origin:'https://other.example'},body:'invalid'})).status,403);

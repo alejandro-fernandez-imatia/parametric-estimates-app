@@ -23,7 +23,7 @@ export async function readExcel(buffer) {
       }
       if(Object.values(record).some(v=>v!=='')) rows.push(record);
     }
-    sheets[name] = rows;
+    if (rows.length) sheets[name] = rows;
   }
   return sheets;
 }

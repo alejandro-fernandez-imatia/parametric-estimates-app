@@ -36,6 +36,20 @@ export function prepareImport(current, sheets) {
           if (!type) throw Error('Tipo esperado: numero, texto o lista');
           const options = str(row.opciones).split('|').map(str).filter(Boolean);
           item = {id:str(row.codigo),name:str(row.nombre),type,options,value:type==='number'?number(row.valor,'valor'):str(row.valor)};
+          if(Object.hasOwn(row,'modo_precio')){
+            const modeName=str(row.modo_precio).toLowerCase();
+            if(!modeName&&str(row.valores_precio))throw Error('Indica el modo de precio para los valores de las opciones');
+            if(modeName){
+              const mode={add:'add',suplemento:'add',multiply:'multiply',coeficiente:'multiply',value:'value',valor:'value'}[modeName];
+              if(!mode||type!=='select')throw Error('Modo de precio válido solo en listas: suplemento, coeficiente o valor');
+              const amounts=str(row.valores_precio).split('|');
+              if(amounts.length!==options.length)throw Error('Debe haber un valor de precio por opción, en el mismo orden');
+              item.optionPricing={mode,values:options.map((option,i)=>({option,amount:number(amounts[i],'precio de opción')}))};
+            }
+          }else{
+            const pricing=data.parameters.find(p=>p.id===item.id)?.optionPricing;
+            if(pricing&&type==='select')item.optionPricing=structuredClone(pricing);
+          }
           if (!/^[a-zA-Z_][a-zA-Z_0-9]*$/.test(item.id)) throw Error('Identificador inválido para fórmula');
           if (type === 'select' && !options.includes(item.value)) throw Error('El valor inicial no está en las opciones');
         } else if (name === 'Familias') {
