@@ -3,6 +3,7 @@ import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { readExcel } from './excel.js';
 import { buildInitialTemplate } from './initial-template.js';
+import { demoBusinesses } from './demo-businesses.js';
 export const files = { '/workflows.js':['workflows.js','text/javascript'], '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/model.js': ['model.js', 'text/javascript'], '/importer.js': ['importer.js', 'text/javascript'], '/styles.css': ['styles.css', 'text/css'] };
 files['/assets/imatia-logo.png'] = ['assets/imatia-logo.png', 'image/png'];
 for (const name of ['00_configuracion_completa','01_parametros','02_articulos','03_tarifas','plantilla_inicial_imatia']) files[`/examples/${name}.xlsx`] = [`examples/${name}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
@@ -12,7 +13,7 @@ files['/editing.js']=['editing.js','text/javascript'];
 files['/editing-ui.js']=['editing-ui.js','text/javascript'];
 files['/companies.js']=['companies.js','text/javascript'];
 files['/demo-businesses.js']=['demo-businesses.js','text/javascript'];
-for(const name of ['demo_fontaneria','demo_electricidad'])files[`/examples/${name}.xlsx`]=[`examples/${name}.xlsx`,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+for(const {file} of Object.values(demoBusinesses))files[`/examples/${file}`]=[`examples/${file}`,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
 const port = Number(process.env.PORT || 3000);
 export const server = http.createServer(async (req, res) => {
   const path = new URL(req.url, 'http://localhost').pathname;

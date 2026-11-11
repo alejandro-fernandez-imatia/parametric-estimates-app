@@ -28,7 +28,7 @@ test('Los Excel de cada oficio importan y calculan todas las comprobaciones',asy
   const sheets=await readExcel(await readFile(new URL(`examples/${demo.file}`,import.meta.url)));
   const result=prepareImport(emptyCompany(demo.name),sheets);assert.deepEqual(result.errors,[]);assert.equal(result.data.articles.length,7);assert.equal(result.data.tariffs.length,0);
   for(const [id,overrides,expected] of demo.cases){const a=result.data.articles.find(a=>a.id===id);assert.equal(unitPrice(a,result.data,{values:{...defaultValues(a,result.data),...overrides}}),expected);}
-  assert.equal(estimateTotals(demoWorkspace(kind)).total,kind==='fontaneria'?83:82);
+  assert.equal(estimateTotals(demoWorkspace(kind)).total,{fontaneria:83,electricidad:82,muebles:1499.84}[kind]);
  }
 });
 test('Eliminar empresas conserva las demás y sustituye la última por una vacía',()=>{

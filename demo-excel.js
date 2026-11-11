@@ -7,7 +7,19 @@ import {defaultValues,unitPrice} from './model.js';
 export async function buildDemoExcel(kind){
  const demo=demoBusinesses[kind],data=demoWorkspace(kind),book=new ExcelJS.Workbook();
  await book.xlsx.load(await buildInitialTemplate());
- const responses=[
+ const responses=kind==='muebles'?[
+  'Taller de fabricación de muebles a medida para viviendas, con montaje en obra.',
+  demo.sheets.Familias.map(f=>f.nombre).join('. '),
+  'La cantidad indica muebles, piezas o servicios completos. El montaje se añade como línea independiente.',
+  'Dimensiones en metros y tiempo en horas. Cada línea permite indicar sus propias medidas y horas.',
+  'Tablero de melamina, contrachapado o roble chapado. Acabado estándar o lacado.',
+  'El precio estima la superficie de tablero, añade herrajes cuando proceden y suma la mano de obra. Armarios y librerías calculan los laterales, tapas, estantes y trasera. Los armarios añaden la superficie de las puertas.',
+  'El tablero aporta el precio por metro cuadrado. El lacado multiplica el precio de fabricación por 1,20.',
+  'Sin tarifas comerciales. Precios iniciales ficticios en EUR.',
+  'Consulta la hoja Comprobaciones para ver los importes unitarios sin impuestos.',
+  'Comprueba medidas, despiece y costes antes de emitir un presupuesto real.',
+  'Catálogo ficticio para practicar la configuración de presupuestos.'
+ ]:[
   kind==='fontaneria'?'Fontanería de asistencia a viviendas: fugas accesibles, desatascos sencillos y sustituciones.':'Electricista de asistencia a viviendas: averías sencillas, cableado, mecanismos y luminarias.',
   demo.sheets.Familias.map(f=>f.nombre).join('. '),
   'Siete servicios. Unidad = una intervención, un tramo completo o un mecanismo. El desplazamiento se añade una sola vez por visita.',
